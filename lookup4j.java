@@ -292,20 +292,19 @@ class lookup4j implements Callable<Integer> {
         try {
             InputStream stream = (InputStream) response.getEntity();
 
-            if (raw) {
+            if (raw || !fullClassName.isEmpty() || !className.isEmpty()) {
                 System.out.println(IOUtils.readStringFromStream(stream));
+            } else {
+                JsonParser parser = factory.createParser(stream);
+
+                MavenSearchResponse mavenSearchResponse = parser.readValueAs(MavenSearchResponse.class);
+
+                String mavenDepTxt = "<dependency>\n\t<groupId>%s</groupId>\n\t<artifactId>%s</artifactId>\n\t<version>%s</version>\n</dependency>\n";
+                for (MavenSearchResponseDoc doc : mavenSearchResponse.getResponse().getDocs()) {
+                    System.out.println(String.format("============ %s:%s", doc.getId(), doc.getLatestVersion()));
+                    System.out.println(String.format(mavenDepTxt, doc.getGroup(), doc.getArtifact(), doc.getLatestVersion()));
+                }
             }
-
-            JsonParser parser = factory.createParser(stream);
-
-            MavenSearchResponse mavenSearchResponse = parser.readValueAs(MavenSearchResponse.class);
-
-            String mavenDepTxt = "<dependency>\n\t<groupId>%s</groupId>\n\t<artifactId>%s</artifactId>\n\t<version>%s</version>\n</dependency>\n";
-            for (MavenSearchResponseDoc doc : mavenSearchResponse.getResponse().getDocs()) {
-                System.out.println(String.format("============ %s:%s", doc.getId(), doc.getLatestVersion()));
-                System.out.println(String.format(mavenDepTxt, doc.getGroup(), doc.getArtifact(), doc.getLatestVersion()));
-            }
-
         } catch (Exception e) {
             System.out.println("Failed: " + e.getMessage());
         }
